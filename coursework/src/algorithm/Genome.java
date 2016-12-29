@@ -9,10 +9,10 @@ public class Genome {
 	static final float K = 0.1f, R_small = 4, R_large = 50, G_selfish = 0.02f, G_cooperative = 0.018f;
 	static final float C_selfish = 0.2f, C_cooperative = 0.1f;
 	//group index | element of group | int: 1-selfish, 0-cooperative.
-	ArrayList<ArrayList<Integer>> group_small = new ArrayList<ArrayList<Integer>>();
+	ArrayList<ArrayList<Integer>> group_small =  new ArrayList<ArrayList<Integer>>();
 	ArrayList<Integer> group_small_inner;
 	
-	ArrayList<ArrayList<Integer>> group_large = new ArrayList<ArrayList<Integer>>();
+	ArrayList<ArrayList<Integer>> group_large =  new ArrayList<ArrayList<Integer>>();
 	ArrayList<Integer> group_large_inner;
 	
 	Random r;
@@ -39,14 +39,21 @@ public class Genome {
 		N = ss + sc + ls + lc;
 	}
 	
-	public void group_dispersion(){
+	public void group_aggregation(){
 		int counter_small = ss + sc;
 		int counter_large = ls + lc;
 		int sc_count = sc;
 		int ss_count = ss;
 		int lc_count = lc;
 		int ls_count = ls;
+		
+		group_small.clear();
+		group_small.trimToSize();
+		group_large.clear();
+		group_large.trimToSize();
+		System.gc();
 
+		
 		//4 times
 		while(counter_small >= small_size){
 			group_small_inner = new ArrayList<Integer>();
@@ -94,8 +101,9 @@ public class Genome {
 			}
 			group_large.add(group_large_inner);
 			counter_large = lc_count + ls_count;
-		}	
-	
+		}
+		
+		System.out.println("ls_count " + ls_count + " lc_count " + lc_count + " counter_large: " + counter_large + " group_large.size(): " + group_large.size());
 		
 		/*
 		//testing purposes
@@ -115,7 +123,7 @@ public class Genome {
 		for(int o = 0; o < t; o++){
 			//reproduce small groups
 			for(int i = 0; i < group_small.size(); i++){
-			
+
 				for(int j = 0; j < group_small.get(i).size(); j++){
 					if(group_small.get(i).get(j) == 0){ //cooperative
 						temp_c++;
@@ -128,7 +136,8 @@ public class Genome {
 			
 
 				change_pop(temp_c_1, temp_c, Type.COOPERATOR, Size.SMALL, i);
-				change_pop(temp_s_1, temp_c, Type.SELFISH, Size.SMALL, i);			
+				change_pop(temp_s_1, temp_c, Type.SELFISH, Size.SMALL, i);
+
 		
 				temp_c = 0;
 				temp_s = 0;
@@ -146,11 +155,13 @@ public class Genome {
 				}
 				temp_c_1 = calculation(temp_c, temp_s, Type.COOPERATOR, Size.LARGE);
 				temp_s_1 = calculation(temp_c, temp_s, Type.SELFISH, Size.LARGE);
-			
-
+				
+				System.out.println("group N: " + i + " temp_s: " + temp_s + " temp_c: " + temp_c + " temp_s_1: " + temp_s_1);
+				
 				change_pop(temp_c_1, temp_c, Type.COOPERATOR, Size.LARGE, i);
-				change_pop(temp_s_1, temp_c, Type.SELFISH, Size.LARGE, i);			
-		
+				change_pop(temp_s_1, temp_s, Type.SELFISH, Size.LARGE, i);	
+
+				
 				temp_c = 0;
 				temp_s = 0;
 			}
@@ -158,6 +169,60 @@ public class Genome {
 
 
 	
+	}
+	
+	public void group_dispersal(){
+		sc = 0;
+		ss = 0;
+		lc = 0;
+		ls = 0;
+		
+		//disperse small group
+		for(int i = 0; i < group_small.size(); i++){
+			for(int j = 0; j < group_small.get(i).size(); j++){
+				if(group_small.get(i).get(j) == 0){
+					sc++;
+				}else{
+					ss++;
+				}
+			}
+		}
+		
+		//disperse large group
+		for(int i = 0; i < group_large.size(); i++){
+			for(int j = 0; j < group_large.get(i).size(); j++){
+				if(group_large.get(i).get(j) == 0){
+					lc++;
+				}else{
+					ls++;
+				}
+			}
+		}
+		
+		System.out.println("lc: " + lc);
+		System.out.println("ls: " + ls);
+		System.out.println("sc: " + sc);
+		System.out.println("ss: " + ss);
+		
+	}
+	
+	public void rescale(){
+		//take off 1 of each genotype until rescalling back to N is complete.
+		int N_temp = sc + ss + lc + ls;
+		
+		while(N_temp > N && sc >= 1000 && ss >= 1000 && lc >= 1000 && ls >= 1000){
+			N_temp = sc + ss + lc + ls;	
+			sc--;
+			ss--;
+			lc--;
+			ls--;	
+		}
+		//System.out.println("lc1: " + lc);
+		//System.out.println("ls1: " + ls);
+		//System.out.println("sc1: " + sc);
+		//System.out.println("ss1: " + ss);		
+		//System.out.println("N_temp: " + N_temp);	
+
 	}
 	
 	private int calculation(int ni_c, int ni_s, Type type, Size size){
@@ -200,14 +265,16 @@ public class Genome {
 					group_small.get(index).remove(g); }
 			} //then don't change for if difference is 0.
 		}else if(size == Size.LARGE){
+			System.out.println("difference 2: " + (temp_x_1 - temp_x));
 			//change population of coordinators and selfish for each small group.
 			if(temp_x_1 - temp_x > 0){
 				for(int i = 0; i < (temp_x_1 - temp_x); i++){
-					group_large.get(index).add(g); }
+					group_large.get(index).add(g);		
+				}
 			}else if(temp_x_1 - temp_x < 0){
 				for(int j = 0; j < (temp_x - temp_x_1); j++){
 					group_large.get(index).remove(g); }
-			} //then don't change for if difference is 0.			
+			} //then don't change for if difference is 0.
 		}
 	}
 	
