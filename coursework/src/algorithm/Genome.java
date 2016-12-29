@@ -3,29 +3,19 @@ package algorithm;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class Genome {
+public class Genome{
 	
-	int ss, sc, ls, lc, small_size, large_size, t, T, N;
+	int ss, sc, ls, lc, small_size, large_size, t, T, N_s, N_l;
 	static final float K = 0.1f, R_small = 4, R_large = 50, G_selfish = 0.02f, G_cooperative = 0.018f;
 	static final float C_selfish = 0.2f, C_cooperative = 0.1f;
 	//group index | element of group | int: 1-selfish, 0-cooperative.
-	ArrayList<ArrayList<Integer>> group_small =  new ArrayList<ArrayList<Integer>>();
-	ArrayList<Integer> group_small_inner;
+	ArrayList<Group> group_list_small =  new ArrayList<Group>();
 	
-	ArrayList<ArrayList<Integer>> group_large =  new ArrayList<ArrayList<Integer>>();
-	ArrayList<Integer> group_large_inner;
+	ArrayList<Group> group_list_large =  new ArrayList<Group>();
 	
-	Random r;
+
 	
-	private enum Type{
-		COOPERATOR,
-		SELFISH
-	}
-	
-	private enum Size{
-		SMALL,
-		LARGE
-	}
+
 	
 	public Genome(int ss, int sc, int ls, int lc, int small_size, int large_size, int t, int T){
 		this.ss = ss;
@@ -36,7 +26,8 @@ public class Genome {
 		this.large_size = large_size;
 		this.t = t;
 		this.T= T;
-		N = ss + sc + ls + lc;
+		N_s = ss + sc;
+		N_l = ls + lc;
 	}
 	
 	public void group_aggregation(){
@@ -46,236 +37,172 @@ public class Genome {
 		int ss_count = ss;
 		int lc_count = lc;
 		int ls_count = ls;
+		Group temp_group;
+		Random r;
 		
-		group_small.clear();
-		group_small.trimToSize();
-		group_large.clear();
-		group_large.trimToSize();
+		group_list_small.clear();
+		group_list_small.trimToSize();
+		group_list_large.clear();
+		group_list_large.trimToSize();
 		System.gc();
 
 		
 		//4 times
 		while(counter_small >= small_size){
-			group_small_inner = new ArrayList<Integer>();
+			temp_group = new Group(First_Class.Size.SMALL);
 			for(int i = 0; i<small_size; i++){	
 				r = new Random();
 				//randomly pick individuals of 'small' size
 				if(r.nextInt(2) == 0 && sc_count > 0){ //cooperator
-					group_small_inner.add(0);
+					temp_group.increment(First_Class.Type.COOPERATOR);
 					sc_count--;
 				}else{ //selfish
 					if(ss_count > 0){
-						group_small_inner.add(1);
+						temp_group.increment(First_Class.Type.SELFISH);
 						ss_count--;	
 					}else if(sc_count > 0){
-						group_small_inner.add(0);
+						temp_group.increment(First_Class.Type.COOPERATOR);
 						sc_count--;						
 					}
-
 				}	
 			}
-			group_small.add(group_small_inner);	
+			group_list_small.add(temp_group);	
 			counter_small = sc_count + ss_count;
 		}
-			
-	
+
+		//System.out.println("ss_count " + ss_count + " sc_count " + sc_count + " counter_small: " + counter_small + " Size: " + group_list_small.size());
+
+		
+		//testing purposes
+		//for(int i = 0; i<group_list_small.size(); i++){
+			//System.out.println("Cooperators: " + group_list_small.get(i).getN_cooperative() + " Selfish: " + group_list_small.get(i).getN_selfish() + " Total: " + group_list_small.get(i).getTotal());
+		//}
 		//40 times
 		while(counter_large >= large_size){
-			group_large_inner = new ArrayList<Integer>();			
+			temp_group = new Group(First_Class.Size.LARGE);
 			for(int i = 0; i<large_size; i++){	
 				r = new Random();
 				//randomly pick individuals of 'small' size
 				if(r.nextInt(2) == 0 && lc_count > 0){ //cooperator
-					group_large_inner.add(0);
+					temp_group.increment(First_Class.Type.COOPERATOR);
 					lc_count--;
 				}else{ //selfish
 					if(ls_count > 0){
-						group_large_inner.add(1);
-						ls_count--;						
+						temp_group.increment(First_Class.Type.SELFISH);
+						ls_count--;	
 					}else if(lc_count > 0){
-						group_large_inner.add(0);
+						temp_group.increment(First_Class.Type.COOPERATOR);
 						lc_count--;						
 					}
-
-				}
+				}	
 			}
-			group_large.add(group_large_inner);
+			group_list_large.add(temp_group);
 			counter_large = lc_count + ls_count;
-		}
+		}		
+		//System.out.println("ls_count " + ls_count + " lc_count " + lc_count + " counter_large: " + counter_large + " Size: " + group_list_large.size());
+		//System.out.println(group_list_large.get(0).getN_cooperative());
+		//System.out.println(group_list_large.get(0).getN_selfish());
 		
-		System.out.println("ls_count " + ls_count + " lc_count " + lc_count + " counter_large: " + counter_large + " group_large.size(): " + group_large.size());
-		
-		/*
 		//testing purposes
-		for(int i = 0; i<group_large.size(); i++){
-			System.out.println(group_large.get(i));
-		}
-		*/
-
-
+		//for(int i = 0; i<group_list_large.size(); i++){
+			//System.out.println("Cooperators: " + group_list_large.get(i).getN_cooperative() + " Selfish: " + group_list_large.get(i).getN_selfish() + " Total: " + group_list_large.get(i).getTotal());
+		//}
 	}
 	
+
 	public void reproduce(){
-
-		int temp_c = 0, temp_s = 0;
-		int temp_c_1, temp_s_1;
-
-		for(int o = 0; o < t; o++){
+		float new_c = 0, new_s = 0;
+		float mutation_c = 1f, mutation_s = 1f;
+		
 			//reproduce small groups
-			for(int i = 0; i < group_small.size(); i++){
-
-				for(int j = 0; j < group_small.get(i).size(); j++){
-					if(group_small.get(i).get(j) == 0){ //cooperative
-						temp_c++;
-					}else{
-						temp_s++;
-					}
+			for(int i = 0; i < group_list_small.size(); i++){
+				for(int o = 0; o < t; o++){ //reproduce for t generations.
+					new_c = calculation(group_list_small.get(i).getN_cooperative(), group_list_small.get(i).getN_selfish(), First_Class.Type.COOPERATOR, First_Class.Size.SMALL);
+					new_s = calculation(group_list_small.get(i).getN_cooperative(), group_list_small.get(i).getN_selfish(), First_Class.Type.SELFISH, First_Class.Size.SMALL);
+					
+					group_list_small.get(i).setN_cooperative(Math.round(new_c*mutation_c + new_s*(1-mutation_s)));
+					group_list_small.get(i).setN_selfish(Math.round(new_s*mutation_s + new_c*(1-mutation_c)));
+					//System.out.println("Group i: " + i + " Cooperators: " + group_list_small.get(i).getN_cooperative() + " Selfish: " + group_list_small.get(i).getN_selfish() + " Total: " + group_list_small.get(i).getTotal());					
 				}
-				temp_c_1 = calculation(temp_c, temp_s, Type.COOPERATOR, Size.SMALL);
-				temp_s_1 = calculation(temp_c, temp_s, Type.SELFISH, Size.SMALL);
-			
-
-				change_pop(temp_c_1, temp_c, Type.COOPERATOR, Size.SMALL, i);
-				change_pop(temp_s_1, temp_c, Type.SELFISH, Size.SMALL, i);
-
-		
-				temp_c = 0;
-				temp_s = 0;
-			}
-			
+			}		
 			//reproduce large groups
-			for(int i = 0; i < group_large.size(); i++){
-			
-				for(int j = 0; j < group_large.get(i).size(); j++){
-					if(group_large.get(i).get(j) == 0){ //cooperative
-						temp_c++;
-					}else{
-						temp_s++;
-					}
+			for(int i = 0; i < group_list_large.size(); i++){
+				for(int o = 0; o < t; o++){ //reproduce for t generations.
+					new_c = calculation(group_list_large.get(i).getN_cooperative(), group_list_large.get(i).getN_selfish(), First_Class.Type.COOPERATOR, First_Class.Size.LARGE);
+					new_s = calculation(group_list_large.get(i).getN_cooperative(), group_list_large.get(i).getN_selfish(), First_Class.Type.SELFISH, First_Class.Size.LARGE);		
+					group_list_large.get(i).setN_cooperative(Math.round(new_c*mutation_c + new_s*(1-mutation_s)));
+					group_list_large.get(i).setN_selfish(Math.round(new_s*mutation_s + new_c*(1-mutation_c)));
 				}
-				temp_c_1 = calculation(temp_c, temp_s, Type.COOPERATOR, Size.LARGE);
-				temp_s_1 = calculation(temp_c, temp_s, Type.SELFISH, Size.LARGE);
-				
-				System.out.println("group N: " + i + " temp_s: " + temp_s + " temp_c: " + temp_c + " temp_s_1: " + temp_s_1);
-				
-				change_pop(temp_c_1, temp_c, Type.COOPERATOR, Size.LARGE, i);
-				change_pop(temp_s_1, temp_s, Type.SELFISH, Size.LARGE, i);	
-
-				
-				temp_c = 0;
-				temp_s = 0;
-			}
-		}
-
-
-	
+			//	System.out.println("Group i: " + i + " Cooperators: " + group_list_large.get(i).getN_cooperative() + " Selfish: " + group_list_large.get(i).getN_selfish() + " Total: " + group_list_large.get(i).getTotal());
+			}	
 	}
 	
-	public void group_dispersal(){
-		sc = 0;
-		ss = 0;
-		lc = 0;
-		ls = 0;
-		
-		//disperse small group
-		for(int i = 0; i < group_small.size(); i++){
-			for(int j = 0; j < group_small.get(i).size(); j++){
-				if(group_small.get(i).get(j) == 0){
-					sc++;
-				}else{
-					ss++;
-				}
-			}
-		}
-		
-		//disperse large group
-		for(int i = 0; i < group_large.size(); i++){
-			for(int j = 0; j < group_large.get(i).size(); j++){
-				if(group_large.get(i).get(j) == 0){
-					lc++;
-				}else{
-					ls++;
-				}
-			}
-		}
-		
-		System.out.println("lc: " + lc);
-		System.out.println("ls: " + ls);
-		System.out.println("sc: " + sc);
-		System.out.println("ss: " + ss);
-		
-	}
 	
-	public void rescale(){
-		//take off 1 of each genotype until rescalling back to N is complete.
-		int N_temp = sc + ss + lc + ls;
-		
-		while(N_temp > N && sc >= 1000 && ss >= 1000 && lc >= 1000 && ls >= 1000){
-			N_temp = sc + ss + lc + ls;	
-			sc--;
-			ss--;
-			lc--;
-			ls--;	
-		}
-		//System.out.println("lc1: " + lc);
-		//System.out.println("ls1: " + ls);
-		//System.out.println("sc1: " + sc);
-		//System.out.println("ss1: " + ss);		
-		//System.out.println("N_temp: " + N_temp);	
-
-	}
-	
-	private int calculation(int ni_c, int ni_s, Type type, Size size){
+	private float calculation(int ni_c, int ni_s, First_Class.Type type, First_Class.Size size){
 		float temp;
 		float R;
-		int result = 0;
-		if(size == Size.SMALL){
+		float result = 0;
+		if(size == First_Class.Size.SMALL){
 			R = R_small;
 		}else{
 			R = R_large;
 		}
 		
-		if(type == Type.COOPERATOR){
+		if(type == First_Class.Type.COOPERATOR){
 			temp = ((ni_c*G_cooperative*C_cooperative)/((ni_c*G_cooperative*C_cooperative)+(ni_s*G_selfish*C_selfish)))*R;
 			result = Math.round(ni_c*(1-K) + (temp/C_cooperative));
 			return result;
-		}else if(type == Type.SELFISH){
+		}else if(type == First_Class.Type.SELFISH){
 			temp = ((ni_s*G_selfish*C_selfish)/((ni_c*G_cooperative*C_cooperative)+(ni_s*G_selfish*C_selfish)))*R;
 			result = Math.round(ni_s*(1-K) + (temp/C_selfish));
 			return result;
 		}
 		return result;
 	}
+
 	
-	private void change_pop(int temp_x_1, int temp_x, Type type, Size size, int index){
-		int g;
-		if(type == Type.COOPERATOR){
-			g = 0;
-		}else{
-			g = 1;
-		}
-		
-		if(size == Size.SMALL){
-			//change population of coordinators and selfish for each small group.
-			if(temp_x_1 - temp_x > 0){				
-				for(int i = 0; i < (temp_x_1 - temp_x); i++){
-					group_small.get(index).add(g); }
-			}else if(temp_x_1 - temp_x < 0){
-				for(int j = 0; j < (temp_x - temp_x_1); j++){
-					group_small.get(index).remove(g); }
-			} //then don't change for if difference is 0.
-		}else if(size == Size.LARGE){
-			System.out.println("difference 2: " + (temp_x_1 - temp_x));
-			//change population of coordinators and selfish for each small group.
-			if(temp_x_1 - temp_x > 0){
-				for(int i = 0; i < (temp_x_1 - temp_x); i++){
-					group_large.get(index).add(g);		
-				}
-			}else if(temp_x_1 - temp_x < 0){
-				for(int j = 0; j < (temp_x - temp_x_1); j++){
-					group_large.get(index).remove(g); }
-			} //then don't change for if difference is 0.
-		}
+	public void group_dispersal(){
+		sc = 0;
+		ss = 0;
+		lc = 0;
+		ls = 0;	
+		//disperse small group
+		for(int i = 0; i < group_list_small.size(); i++){
+			sc += group_list_small.get(i).getN_cooperative();
+			ss += group_list_small.get(i).getN_selfish();
+		}		
+		//disperse large group
+		for(int i = 0; i < group_list_large.size(); i++){
+			lc += group_list_large.get(i).getN_cooperative();
+			ls += group_list_large.get(i).getN_selfish();
+		}		
+		System.out.println("lc: " + lc);
+		System.out.println("ls: " + ls);
+		System.out.println("sc: " + sc);
+		System.out.println("ss: " + ss);	
 	}
+	
+
+	
+	public void rescale(){
+		//take off 1 of each genotype until rescalling back to N is complete.
+		int N_temp = sc + ss + lc + ls;
+		
+		//rescale small groups
+		while(N_temp > N_s && sc > 100 && ss > 100 && lc > 100 && ls > 100){
+			sc--;
+			ss--;
+			lc--;
+			ls--;
+		}
+			
+		System.out.println("lc1: " + lc);
+		System.out.println("ls1: " + ls);
+		System.out.println("sc1: " + sc);
+		System.out.println("ss1: " + ss);		
+		System.out.println("N_temp: " + N_temp);	
+
+	}
+	
 	
 }

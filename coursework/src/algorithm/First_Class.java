@@ -4,10 +4,20 @@ import java.util.Random;
 
 public class First_Class {
 
-	static int ss = 200, sc = 200, ls = 200, lc = 200; //change back to 1000 later
-	static int small_size = 4, large_size = 40, t = 4, T = 1; //change T back to 1000 later
+	static int ss = 1000, sc = 1000, ls = 1000, lc = 1000; //change back to 1000 later
+	static int small_size = 4, large_size = 40, t = 4, T = 100; //change T back to 1000 later
 	public static Genome genome; 
 	Random r = new Random();
+	
+	public enum Type{
+		COOPERATOR,
+		SELFISH
+	}
+	
+	public enum Size{
+		SMALL,
+		LARGE
+	}
 	
 	public First_Class(){
 		process();
